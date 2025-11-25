@@ -14,21 +14,21 @@ async function createApplication(userId, data) {
   } = data;
 
   const [result] = await pool.execute(
-    `i
+    `
     INSERT INTO applications
-    (user_id, company, job_title, location, status, source, applied_date, job_link, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (user_id, company, job_title, location, status, source, applied_date, job_link, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
-        user_id,
-        company,
-        job_title,
-        location || null,
-        status || "Applied",
-        source || null,
-        applied_date || null, 
-        job_link || null, 
-        notes|| null,
+      userId,
+      company,
+      jobTitle,
+      location || null,
+      status || "Applied",
+      source || null,
+      appliedDate || null,
+      jobLink || null,
+      notes || null,
     ]
   );
 
@@ -131,3 +131,4 @@ module.exports = {
   updateApplication,
   deleteApplication,
 };
+
