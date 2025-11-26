@@ -28,6 +28,31 @@ export async function login(username, password) {
   });
 }
 
+export async function register(username, email, password) {
+  return request("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, email, password }),
+  });
+}
+
+export async function verifyEmail(token) {
+  return request("/api/auth/verify-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function deleteAccount(token) {
+  return request("/api/auth/delete-account", {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
 export async function getApplications(token) {
   return request("/api/applications", {
     headers: {

@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
   username VARCHAR(50) NOT NULL UNIQUE,
   email VARCHAR(100) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
+  is_verified BOOLEAN DEFAULT FALSE,
+  verification_token VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -19,8 +21,9 @@ CREATE TABLE IF NOT EXISTS applications (
   user_id INT NOT NULL,
   company VARCHAR(100) NOT NULL,
   job_title VARCHAR(100) NOT NULL,
+  job_posting_id VARCHAR(100),
   location VARCHAR(100),
-  status ENUM('Applied', 'Interviewing', 'Offer', 'Rejected', 'On hold')
+  status ENUM('Applied', 'Online Assessment', 'Interviewing', 'Offer', 'Rejected', 'On hold', 'Accepted')
     DEFAULT 'Applied',
   source VARCHAR(100),
   applied_date DATE,

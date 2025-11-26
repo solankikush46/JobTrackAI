@@ -49,6 +49,7 @@ router.post("/", async (req, res) => {
     const {
       company,
       jobTitle,
+      jobPostingId,
       location,
       status,
       source,
@@ -66,6 +67,7 @@ router.post("/", async (req, res) => {
     const app = await createApplication(userId, {
       company,
       jobTitle,
+      jobPostingId,
       location,
       status,
       source,
@@ -89,6 +91,7 @@ router.put("/:id", async (req, res) => {
     const {
       company,
       jobTitle,
+      jobPostingId,
       location,
       status,
       source,
@@ -111,6 +114,7 @@ router.put("/:id", async (req, res) => {
     const updated = await updateApplication(userId, appId, {
       company,
       jobTitle,
+      jobPostingId,
       location,
       status,
       source,

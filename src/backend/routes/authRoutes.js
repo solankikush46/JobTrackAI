@@ -1,11 +1,15 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const {
   createUser,
   findUserByUsername,
   findUserByEmail,
+  verifyUser,
+  deleteUser,
 } = require("../models/userModel");
+const authMiddleware = require("../middleware/authMiddleware");
 
 console.log("authRoutes file loaded");
 
@@ -43,25 +47,48 @@ router.post("/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const verificationToken = crypto.randomBytes(32).toString("hex");
 
-    const user = await createUser({ username, email, passwordHash });
+    const user = await createUser({ username, email, passwordHash, verificationToken });
 
-    const token = jwt.sign(
-      { id: user.id, username: user.username },
-      JWT_SECRET,
-      { expiresIn: "2h" }
-    );
+    // MOCK EMAIL SENDING
+    const verificationLink = `http://localhost:5173/verify-email?token=${verificationToken}`;
+    console.log("==================================================");
+    console.log(`[MOCK EMAIL] Verification Link for ${email}:`);
+    console.log(verificationLink);
+    console.log("==================================================");
 
     res.status(201).json({
+      message: "Registration successful. Please check your email to verify your account.",
       user: {
         id: user.id,
         username: user.username,
         email: user.email,
       },
-      token,
     });
   } catch (err) {
     console.error("Register error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// POST /api/auth/verify-email
+router.post("/verify-email", async (req, res) => {
+  console.log("HIT /api/auth/verify-email", req.body);
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+
+    const success = await verifyUser(token);
+    if (!success) {
+      return res.status(400).json({ message: "Invalid or expired verification token" });
+    }
+
+    res.json({ message: "Email verified successfully. You can now log in." });
+  } catch (err) {
+    console.error("Verification error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -89,6 +116,10 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
+    if (!user.is_verified) {
+      return res.status(403).json({ message: "Please verify your email before logging in." });
+    }
+
     const token = jwt.sign(
       { id: user.id, username: user.username },
       JWT_SECRET,
@@ -105,6 +136,21 @@ router.post("/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// DELETE /api/auth/delete-account
+router.delete("/delete-account", authMiddleware, async (req, res) => {
+  console.log("HIT /api/auth/delete-account", req.user);
+  try {
+    const success = await deleteUser(req.user.id);
+    if (!success) {
+      return res.status(400).json({ message: "Failed to delete account" });
+    }
+    res.json({ message: "Account deleted successfully" });
+  } catch (err) {
+    console.error("Delete account error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

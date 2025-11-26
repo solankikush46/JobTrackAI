@@ -5,6 +5,7 @@ async function createApplication(userId, data) {
   const {
     company,
     jobTitle,
+    jobPostingId,
     location,
     status = "Applied",
     source,
@@ -16,13 +17,14 @@ async function createApplication(userId, data) {
   const [result] = await pool.execute(
     `
     INSERT INTO applications
-      (user_id, company, job_title, location, status, source, applied_date, job_link, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (user_id, company, job_title, job_posting_id, location, status, source, applied_date, job_link, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       userId,
       company,
       jobTitle,
+      jobPostingId || null,
       location || null,
       status || "Applied",
       source || null,
@@ -74,6 +76,7 @@ async function updateApplication(userId, appId, data) {
   const {
     company,
     jobTitle,
+    jobPostingId,
     location,
     status,
     source,
@@ -88,6 +91,7 @@ async function updateApplication(userId, appId, data) {
     SET
       company = ?,
       job_title = ?,
+      job_posting_id = ?,
       location = ?,
       status = ?,
       source = ?,
@@ -99,6 +103,7 @@ async function updateApplication(userId, appId, data) {
     [
       company,
       jobTitle,
+      jobPostingId || null,
       location || null,
       status || "Applied",
       source || null,
