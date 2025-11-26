@@ -4,7 +4,9 @@ const dotenv = require("dotenv");
 const db = require("./db");
 const authRoutes = require("./routes/authRoutes");
 const authMiddleware = require("./middleware/authMiddleware");
-const applicationRoutes = require("./routes/applicationRoutes")
+const applicationRoutes = require("./routes/applicationRoutes");
+const extractRoutes = require("./routes/extractRoutes");
+
 dotenv.config();
 
 const app = express();
@@ -17,8 +19,10 @@ app.get("/", (req, res) => {
   res.send("JobTrack AI backend is running.");
 });
 
-// Auth routes mounted at /api/auth
+// Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/extract", extractRoutes);
 
 // Health check route
 app.get("/api/health", (req, res) => {
@@ -36,8 +40,6 @@ app.get("/api/protected/test", authMiddleware, (req, res) => {
     user: req.user,
   });
 });
-
-app.use("/api/applications", applicationRoutes)
 
 const PORT = process.env.PORT || 4000;
 

@@ -1,37 +1,14 @@
 const pool = require("../db");
 
 // Create a new application for a user
-async function createApplication(userId, data) {
-  const {
-    company,
-    jobTitle,
-    jobPostingId,
-    location,
-    status = "Applied",
-    source,
-    appliedDate,
-    jobLink,
-    notes,
-  } = data;
-
+// Create a new application for a user
+async function createApplication(userId, { company, jobTitle, jobPostingId, location, status, companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl }) {
   const [result] = await pool.execute(
     `
-    INSERT INTO applications
-      (user_id, company, job_title, job_posting_id, location, status, source, applied_date, job_link, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO applications (user_id, company, job_title, job_posting_id, location, status, company_description, responsibilities, required_qualifications, preferred_qualifications, logo_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
-    [
-      userId,
-      company,
-      jobTitle,
-      jobPostingId || null,
-      location || null,
-      status || "Applied",
-      source || null,
-      appliedDate || null,
-      jobLink || null,
-      notes || null,
-    ]
+    [userId, company, jobTitle, jobPostingId, location, status || 'Applied', companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl]
   );
 
   const [rows] = await pool.execute(
@@ -72,50 +49,17 @@ async function getApplicationById(userId, appId) {
   return rows[0] || null;
 }
 
-async function updateApplication(userId, appId, data) {
-  const {
-    company,
-    jobTitle,
-    jobPostingId,
-    location,
-    status,
-    source,
-    appliedDate,
-    jobLink,
-    notes,
-  } = data;
-
-  await pool.execute(
+async function updateApplication(id, userId, { company, jobTitle, jobPostingId, location, status, companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl }) {
+  const [result] = await pool.execute(
     `
     UPDATE applications
-    SET
-      company = ?,
-      job_title = ?,
-      job_posting_id = ?,
-      location = ?,
-      status = ?,
-      source = ?,
-      applied_date = ?,
-      job_link = ?,
-      notes = ?
+    SET company = ?, job_title = ?, job_posting_id = ?, location = ?, status = ?, company_description = ?, responsibilities = ?, required_qualifications = ?, preferred_qualifications = ?, logo_url = ?
     WHERE id = ? AND user_id = ?
     `,
-    [
-      company,
-      jobTitle,
-      jobPostingId || null,
-      location || null,
-      status || "Applied",
-      source || null,
-      appliedDate || null,
-      jobLink || null,
-      notes || null,
-      appId,
-      userId,
-    ]
+    [company, jobTitle, jobPostingId, location, status, companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl, id, userId]
   );
 
-  return getApplicationById(userId, appId);
+  return getApplicationById(userId, id);
 }
 
 async function deleteApplication(userId, appId) {
@@ -136,4 +80,3 @@ module.exports = {
   updateApplication,
   deleteApplication,
 };
-

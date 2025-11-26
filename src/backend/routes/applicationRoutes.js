@@ -52,10 +52,11 @@ router.post("/", async (req, res) => {
       jobPostingId,
       location,
       status,
-      source,
-      appliedDate,
-      jobLink,
-      notes,
+      companyDescription,
+      responsibilities,
+      requiredQualifications,
+      preferredQualifications,
+      logoUrl
     } = req.body;
 
     if (!company || !jobTitle) {
@@ -70,10 +71,11 @@ router.post("/", async (req, res) => {
       jobPostingId,
       location,
       status,
-      source,
-      appliedDate,
-      jobLink,
-      notes,
+      companyDescription,
+      responsibilities,
+      requiredQualifications,
+      preferredQualifications,
+      logoUrl
     });
 
     res.status(201).json(app);
@@ -94,10 +96,11 @@ router.put("/:id", async (req, res) => {
       jobPostingId,
       location,
       status,
-      source,
-      appliedDate,
-      jobLink,
-      notes,
+      companyDescription,
+      responsibilities,
+      requiredQualifications,
+      preferredQualifications,
+      logoUrl
     } = req.body;
 
     if (!company || !jobTitle) {
@@ -111,17 +114,20 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ message: "Application not found" });
     }
 
-    const updated = await updateApplication(userId, appId, {
-      company,
-      jobTitle,
-      jobPostingId,
-      location,
-      status,
-      source,
-      appliedDate,
-      jobLink,
-      notes,
-    });
+    const mergedData = {
+      company: req.body.company || existing.company,
+      jobTitle: req.body.jobTitle || existing.job_title,
+      jobPostingId: req.body.jobPostingId !== undefined ? req.body.jobPostingId : existing.job_posting_id,
+      location: req.body.location !== undefined ? req.body.location : existing.location,
+      status: req.body.status || existing.status,
+      companyDescription: req.body.companyDescription !== undefined ? req.body.companyDescription : existing.company_description,
+      responsibilities: req.body.responsibilities !== undefined ? req.body.responsibilities : existing.responsibilities,
+      requiredQualifications: req.body.requiredQualifications !== undefined ? req.body.requiredQualifications : existing.required_qualifications,
+      preferredQualifications: req.body.preferredQualifications !== undefined ? req.body.preferredQualifications : existing.preferred_qualifications,
+      logoUrl: req.body.logoUrl !== undefined ? req.body.logoUrl : existing.logo_url
+    };
+
+    const updated = await updateApplication(appId, userId, mergedData);
 
     res.json(updated);
   } catch (err) {

@@ -18,6 +18,8 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background-color: #0f172a;
   color: #0f172a;
+  font-size: 16px;
+  /* Increased base font size */
 }
 
 /* Global elements */
@@ -90,8 +92,12 @@ textarea {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: 350px 1fr;
+  /* Fixed width for form, rest for table */
+  gap: 24px;
+  max-width: 100%;
+  /* Use full width */
+  padding: 0 20px;
 }
 
 @media (max-width: 900px) {
@@ -329,8 +335,8 @@ textarea {
 
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
 }
 
 .field {
@@ -347,11 +353,14 @@ textarea {
 .field-input,
 .field-select,
 .field-textarea {
-  padding: 8px 10px;
+  padding: 10px 12px;
+  /* Larger padding */
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.7);
   background: rgba(15, 23, 42, 0.9);
   color: #e5e7eb;
+  font-size: 15px;
+  /* Larger input font */
 }
 
 .field-input::placeholder,
@@ -380,8 +389,10 @@ textarea {
   justify-content: center;
   border-radius: 999px;
   border: 1px solid transparent;
-  padding: 7px 14px;
-  font-size: 13px;
+  padding: 8px 16px;
+  /* Larger padding */
+  font-size: 14px;
+  /* Larger button font */
   line-height: 1;
   gap: 6px;
 }
@@ -426,6 +437,27 @@ textarea {
   background: rgba(148, 163, 184, 0.25);
 }
 
+.btn-full {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #60a5fa;
+  text-decoration: none;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+  color: #93c5fd;
+}
+
 /* Alerts */
 
 .error-text {
@@ -447,7 +479,8 @@ textarea {
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 15px;
+  /* Larger table font */
 }
 
 .table thead {

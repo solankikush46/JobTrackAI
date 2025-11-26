@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobTrackAI Scanner</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+    <div class="app-shell">
+        <div class="card">
+            <div class="header">
+                <img src="logo.png" alt="Logo" class="logo">
+                <h1 class="title">JobTrackAI</h1>
+            </div>
+
+            <!-- Login Section (shown if no token) -->
+            <div id="loginSection" class="hidden">
+                <p class="message" style="margin-bottom: 15px;">Please log in to your dashboard to sync your account.
+                </p>
+                <button id="loginBtn" class="btn btn-primary">Connect to Dashboard</button>
+            </div>
+
+            <!-- Scan Section (shown if token exists) -->
+            <div id="scanSection" class="hidden">
+                <div class="field hidden"> <!-- Hidden token input for logic compatibility -->
+                    <input type="password" id="tokenInput">
+                </div>
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <span class="status-chip status-accepted">● Connected</span>
+                </div>
+                <button id="scanBtn" class="btn btn-primary">Scan Job</button>
+                <button id="logoutBtn" class="btn btn-secondary"
+                    style="font-size: 11px; padding: 6px;">Disconnect</button>
+            </div>
+
+            <!-- Review Section -->
+            <div id="reviewSection" class="hidden">
+                <div class="field">
+                    <label class="label">Company</label>
+                    <input type="text" id="company">
+                </div>
+                <div class="field">
+                    <label class="label">Job Title</label>
+                    <input type="text" id="jobTitle">
+                </div>
+                <div class="field">
+                    <label class="label">Job ID</label>
+                    <input type="text" id="jobPostingId">
+                </div>
+                <div class="field">
+                    <label class="label">Location</label>
+                    <input type="text" id="location">
+                </div>
+                <div class="field">
+                    <label class="label">Status</label>
+                    <select id="status">
+                        <option value="Applied">Applied</option>
+                        <option value="Interviewing">Interviewing</option>
+                        <option value="Offer">Offer</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label class="label">Company Description</label>
+                    <textarea id="companyDescription" rows="3" style="resize: vertical;"></textarea>
+                </div>
+                <div class="field">
+                    <label class="label">Responsibilities</label>
+                    <textarea id="responsibilities" rows="4" style="resize: vertical;"></textarea>
+                </div>
+                <div class="field">
+                    <label class="label">Required Qualifications</label>
+                    <textarea id="requiredQualifications" rows="4" style="resize: vertical;"></textarea>
+                </div>
+                <div class="field">
+                    <label class="label">Preferred Qualifications</label>
+                    <textarea id="preferredQualifications" rows="3" style="resize: vertical;"></textarea>
+                </div>
+
+                <button id="saveBtn" class="btn btn-primary">Save to Dashboard</button>
+                <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+
+            <div id="message" class="message"></div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+
+</html>

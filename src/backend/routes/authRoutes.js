@@ -28,15 +28,17 @@ router.post("/register", async (req, res) => {
   console.log("HIT /api/auth/register", req.body);
 
   try {
-    const { username, email, password } = req.body;
+    // Accept 'name' as 'username' if provided, to match frontend
+    const { username, name, email, password } = req.body;
+    const finalUsername = username || name;
 
-    if (!username || !email || !password) {
+    if (!finalUsername || !email || !password) {
       return res
         .status(400)
         .json({ message: "Username, email, and password are required" });
     }
 
-    const existingByUsername = await findUserByUsername(username);
+    const existingByUsername = await findUserByUsername(finalUsername);
     if (existingByUsername) {
       return res.status(409).json({ message: "Username already taken" });
     }
@@ -49,7 +51,7 @@ router.post("/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString("hex");
 
-    const user = await createUser({ username, email, passwordHash, verificationToken });
+    const user = await createUser({ username: finalUsername, email, passwordHash, verificationToken });
 
     // MOCK EMAIL SENDING
     const verificationLink = `http://localhost:5173/verify-email?token=${verificationToken}`;
@@ -98,22 +100,28 @@ router.post("/login", async (req, res) => {
   console.log("HIT /api/auth/login", req.body);
 
   try {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
 
-    if (!username || !password) {
+    if ((!username && !email) || !password) {
       return res
         .status(400)
-        .json({ message: "Username and password are required" });
+        .json({ message: "Email/Username and password are required" });
     }
 
-    const user = await findUserByUsername(username);
+    let user = null;
+    if (email) {
+      user = await findUserByEmail(email);
+    } else {
+      user = await findUserByUsername(username);
+    }
+
     if (!user) {
-      return res.status(401).json({ message: "Invalid username or password" });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
-      return res.status(401).json({ message: "Invalid username or password" });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     if (!user.is_verified) {

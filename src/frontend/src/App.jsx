@@ -1,102 +1,185 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import {
-  login,
-  getApplications,
-  createApplication,
-  updateApplication,
-  deleteApplication,
-  deleteAccount,
-} from "./apiClient";
-import logoIcon from "./assets/logo_icon_transparent.png";
-import SignupPage from "./SignupPage";
-import VerifyEmailPage from "./VerifyEmailPage";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "./index.css";
+
+// --- API Helper ---
+const API_URL = "http://localhost:4000/api";
+
+const getAuthHeaders = (token) => ({
+  headers: { Authorization: `Bearer ${token}` },
+});
+
+// --- Components ---
 
 function LoginPage({ onLogin }) {
-  const [username, setUsername] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
-
     try {
-      const data = await login(username, password);
-      onLogin(data.token, data.user);
-      navigate("/dashboard");
+      if (isRegistering) {
+        await axios.post(`${API_URL}/auth/register`, { name, email, password });
+        // Auto login after register
+        const res = await axios.post(`${API_URL}/auth/login`, { email, password });
+        onLogin(res.data.token, res.data.user);
+      } else {
+        const res = await axios.post(`${API_URL}/auth/login`, { email, password });
+        onLogin(res.data.token, res.data.user);
+      }
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      setError(err.response?.data?.message || "An error occurred");
     }
   };
 
   return (
     <div className="login-page">
       <div className="login-container">
+        {/* Left Side - Brand & Animation */}
         <div className="login-left">
           <div className="logo-animation-container">
-            <img src={logoIcon} alt="JobTrackAI Icon" className="login-logo" />
+            <div className="login-logo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: "100%", height: "100%", color: "#60a5fa" }}>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
           </div>
-          <h1 className="login-brand">JobTrack AI</h1>
-          <p className="login-tagline">Your AI-powered career companion.</p>
+          <h1 className="login-brand">JobTrackAI</h1>
+          <p className="login-tagline">
+            {isRegistering
+              ? "Join thousands of job seekers tracking their applications with AI."
+              : "Your AI Powered Career Companion."}
+          </p>
         </div>
+
+        {/* Right Side - Form */}
         <div className="login-right">
           <div className="login-card">
-            <h2 className="login-title">Welcome Back</h2>
+            <h2 className="login-title">{isRegistering ? "Create Account" : "Welcome Back"}</h2>
             <p className="login-subtitle">
-              Please enter your details to sign in.
+              {isRegistering ? "Enter your details to get started" : "Enter your credentials to access your account"}
             </p>
-            <form onSubmit={handleSubmit} className="form-grid">
-              {error && (
-                <div className="status-chip status-rejected" style={{ width: "100%", marginBottom: "10px" }}>
-                  {error}
+
+            <form onSubmit={handleSubmit} className="login-form">
+              {error && <div className="error-text" style={{ marginBottom: "15px", textAlign: "center" }}>{error}</div>}
+
+              {isRegistering && (
+                <div className="field" style={{ marginBottom: "12px" }}>
+                  <label className="field-label">Full Name</label>
+                  <input
+                    className="field-input"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    required
+                  />
                 </div>
               )}
-              <div className="field">
-                <label className="field-label">Username</label>
+
+              <div className="field" style={{ marginBottom: "12px" }}>
+                <label className="field-label">Email Address</label>
                 <input
                   className="field-input"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
                   required
                 />
               </div>
-              <div className="field">
+
+              <div className="field" style={{ marginBottom: "20px" }}>
                 <label className="field-label">Password</label>
                 <input
                   className="field-input"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   required
                 />
               </div>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{ marginTop: "10px", width: "100%" }}
-                disabled={loading}
-              >
-                {loading ? "Signing In..." : "Sign In"}
+
+              <button type="submit" className="btn btn-primary btn-full">
+                {isRegistering ? "Sign Up" : "Sign In"}
               </button>
             </form>
-            <div className="text-center" style={{ marginTop: "20px" }}>
-              <p className="text-subtle">
-                Don't have an account?{" "}
-                <Link to="/signup" style={{ color: "#60a5fa", textDecoration: "none" }}>
-                  Sign up
-                </Link>
-              </p>
+
+            <div className="text-center">
+              <button
+                className="btn-link"
+                onClick={() => setIsRegistering(!isRegistering)}
+              >
+                {isRegistering ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
+              </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VerifyEmailPage({ onVerified }) {
+  const [status, setStatus] = useState("verifying"); // verifying, success, error
+  const [message, setMessage] = useState("Verifying your email...");
+
+  useEffect(() => {
+    const verify = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+
+      if (!token) {
+        setStatus("error");
+        setMessage("No verification token found.");
+        return;
+      }
+
+      try {
+        await axios.post(`${API_URL}/auth/verify-email`, { token });
+        setStatus("success");
+        setMessage("Email verified successfully! You can now log in.");
+      } catch (err) {
+        setStatus("error");
+        setMessage(err.response?.data?.message || "Verification failed.");
+      }
+    };
+
+    verify();
+  }, []);
+
+  return (
+    <div className="login-page">
+      <div className="login-container" style={{ maxWidth: "500px", margin: "0 auto", display: "flex", justifyContent: "center" }}>
+        <div className="login-card" style={{ width: "100%", textAlign: "center", padding: "40px" }}>
+          <div className="login-logo" style={{ margin: "0 auto 20px", width: "60px", height: "60px" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: "100%", height: "100%", color: "#60a5fa" }}>
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <h2 className="login-title" style={{ marginBottom: "10px" }}>
+            {status === "verifying" ? "Verifying..." : status === "success" ? "Verified!" : "Verification Failed"}
+          </h2>
+          <p className="login-subtitle" style={{ marginBottom: "30px" }}>{message}</p>
+
+          {status !== "verifying" && (
+            <button
+              className="btn btn-primary btn-full"
+              onClick={() => {
+                window.history.pushState({}, "", "/");
+                onVerified();
+              }}
+            >
+              Go to Login
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -106,13 +189,17 @@ function LoginPage({ onLogin }) {
 function DashboardPage({ token, user, onLogout }) {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showMenu, setShowMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Form state
+  // Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
+
+  // Form State
   const [company, setCompany] = useState("");
   const [position, setPosition] = useState("");
   const [location, setLocation] = useState("");
-  const [jobPostingId, setJobPostingId] = useState("");
   const [status, setStatus] = useState("Applied");
 
   // Editing state
@@ -125,16 +212,28 @@ function DashboardPage({ token, user, onLogout }) {
     status: "",
   });
 
-  useEffect(() => {
-    loadApplications();
-  }, []);
+  // View Details State
+  const [selectedApp, setSelectedApp] = useState(null);
 
-  const loadApplications = async () => {
+  // Derived State: Filtered Applications
+  const filteredApplications = applications.filter((app) => {
+    const matchesSearch =
+      app.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.job_title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = filterStatus === "All" || app.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  useEffect(() => {
+    fetchApplications();
+  }, [token]);
+
+  const fetchApplications = async () => {
     try {
-      const data = await getApplications(token);
-      setApplications(data);
+      const res = await axios.get(`${API_URL}/applications`, getAuthHeaders(token));
+      setApplications(res.data);
     } catch (err) {
-      console.error("Failed to load apps", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -142,37 +241,36 @@ function DashboardPage({ token, user, onLogout }) {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!company || !position) return;
     try {
-      const newApp = await createApplication(token, {
-        company,
-        jobTitle: position,
-        jobPostingId,
-        location,
-        status,
-      });
-      setApplications([...applications, newApp]);
+      const newApp = await axios.post(
+        `${API_URL}/applications`,
+        { company, jobTitle: position, location, status },
+        getAuthHeaders(token)
+      );
+      setApplications([newApp.data, ...applications]);
       setCompany("");
       setPosition("");
       setLocation("");
-      setJobPostingId("");
       setStatus("Applied");
     } catch (err) {
       alert(err.message);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, e) => {
+    e.stopPropagation();
     if (!confirm("Are you sure?")) return;
     try {
-      await deleteApplication(token, id);
+      await axios.delete(`${API_URL}/applications/${id}`, getAuthHeaders(token));
       setApplications(applications.filter((app) => app.id !== id));
     } catch (err) {
       alert(err.message);
     }
   };
 
-  const handleEditClick = (app) => {
+  // --- Inline Edit Handlers ---
+  const handleEditClick = (app, e) => {
+    e.stopPropagation();
     setEditingId(app.id);
     setEditFormData({
       company: app.company,
@@ -183,81 +281,87 @@ function DashboardPage({ token, user, onLogout }) {
     });
   };
 
-  const handleCancelClick = () => {
+  const handleCancelEdit = (e) => {
+    e.stopPropagation();
     setEditingId(null);
   };
 
-  const handleSaveClick = async (id) => {
-    try {
-      const updatedApp = await updateApplication(token, id, editFormData);
-      setApplications(
-        applications.map((app) => (app.id === id ? updatedApp : app))
-      );
-      setEditingId(null);
-    } catch (err) {
-      alert(err.message);
-    }
+  const handleEditChange = (field, value) => {
+    setEditFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleEditFormChange = (e) => {
-    const { name, value } = e.target;
-    setEditFormData((prev) => ({ ...prev, [name]: value }));
+  const handleSaveEdit = async (id, e) => {
+    e.stopPropagation();
+    try {
+      const res = await axios.put(
+        `${API_URL}/applications/${id}`,
+        {
+          company: editFormData.company,
+          jobTitle: editFormData.jobTitle,
+          jobPostingId: editFormData.jobPostingId,
+          location: editFormData.location,
+          status: editFormData.status,
+        },
+        getAuthHeaders(token)
+      );
+
+      // Update local state
+      setApplications(applications.map((app) => (app.id === id ? res.data : app)));
+      setEditingId(null);
+    } catch (err) {
+      console.error("Failed to update application", err);
+      alert("Failed to update application");
+    }
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) return;
     try {
-      await deleteAccount(token);
+      await axios.delete(`${API_URL}/auth/delete-account`, getAuthHeaders(token));
       onLogout();
     } catch (err) {
-      alert(err.message);
+      alert("Failed to delete account: " + (err.response?.data?.message || err.message));
     }
+  };
+
+  const handleViewDetails = (app) => {
+    if (editingId) return; // Don't open details if editing
+    setSelectedApp(app);
+  };
+
+  const closeDetails = () => {
+    setSelectedApp(null);
   };
 
   return (
     <div className="app-shell">
+      {/* Header */}
       <header className="app-header">
         <div className="app-header-title">
-          <img src={logoIcon} alt="Logo" style={{ height: "32px", marginRight: "12px" }} />
-          <span className="app-brand-text">JobTrack AI</span>
-          <span className="app-header-badge">Job search workspace</span>
+          <div className="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: "24px", height: "24px", color: "#60a5fa" }}>
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <h1 className="app-brand-text" style={{ fontSize: "20px", margin: 0 }}>JobTrackAI</h1>
         </div>
         <div className="app-header-user" style={{ position: "relative" }}>
-          <span>{user?.username}</span>
-          <button
-            className="btn btn-ghost"
-            style={{ padding: "4px 8px", marginLeft: "8px" }}
-            onClick={() => setShowMenu(!showMenu)}
+          <div
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
           >
-            ▼
-          </button>
+            <span style={{ color: "#94a3b8" }}>{user?.email || "Welcome back"}</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
 
-          {showMenu && (
-            <div style={{
-              position: "absolute",
-              top: "100%",
-              right: 0,
-              marginTop: "8px",
-              background: "#1e293b",
-              border: "1px solid #334155",
-              borderRadius: "8px",
-              padding: "4px",
-              minWidth: "150px",
-              zIndex: 100,
-              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.5)"
-            }}>
-              <button
-                className="btn btn-ghost"
-                style={{ width: "100%", justifyContent: "flex-start", borderRadius: "4px" }}
-                onClick={onLogout}
-              >
-                Logout
+          {showUserMenu && (
+            <div className="user-menu-dropdown">
+              <button onClick={onLogout} className="menu-item">
+                Sign Out
               </button>
-              <button
-                className="btn btn-ghost"
-                style={{ width: "100%", justifyContent: "flex-start", borderRadius: "4px", color: "#f87171" }}
-                onClick={handleDeleteAccount}
-              >
+              <button onClick={() => { setShowUserMenu(false); setShowDeleteConfirm(true); }} className="menu-item text-danger">
                 Delete Account
               </button>
             </div>
@@ -267,14 +371,13 @@ function DashboardPage({ token, user, onLogout }) {
 
       <main className="app-main">
         <div className="dashboard-grid">
-          {/* Left Column: Add Form */}
+
+          {/* Add Form - Left Column */}
           <div className="form-card">
-            <div className="card-header">
-              <div className="card-title">Add Application</div>
-            </div>
-            <form onSubmit={handleAdd} className="form-grid">
+            <h2 className="card-title" style={{ marginBottom: "16px", fontSize: "18px" }}>Add New Application</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div className="field">
-                <label className="field-label">Company</label>
+                <label className="field-label" style={{ fontSize: "14px" }}>Company</label>
                 <input
                   className="field-input"
                   value={company}
@@ -283,7 +386,7 @@ function DashboardPage({ token, user, onLogout }) {
                 />
               </div>
               <div className="field">
-                <label className="field-label">Position</label>
+                <label className="field-label" style={{ fontSize: "14px" }}>Position</label>
                 <input
                   className="field-input"
                   value={position}
@@ -292,16 +395,7 @@ function DashboardPage({ token, user, onLogout }) {
                 />
               </div>
               <div className="field">
-                <label className="field-label">Job ID</label>
-                <input
-                  className="field-input"
-                  value={jobPostingId}
-                  onChange={(e) => setJobPostingId(e.target.value)}
-                  placeholder="e.g. 12345"
-                />
-              </div>
-              <div className="field">
-                <label className="field-label">Location</label>
+                <label className="field-label" style={{ fontSize: "14px" }}>Location</label>
                 <input
                   className="field-input"
                   value={location}
@@ -310,237 +404,420 @@ function DashboardPage({ token, user, onLogout }) {
                 />
               </div>
               <div className="field">
-                <label className="field-label">Status</label>
+                <label className="field-label" style={{ fontSize: "14px" }}>Status</label>
                 <select
                   className="field-select"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 >
-                  <option>Applied</option>
-                  <option>Online Assessment</option>
-                  <option>Interviewing</option>
-                  <option>Offer</option>
-                  <option>Rejected</option>
-                  <option>Accepted</option>
+                  <option value="Applied">Applied</option>
+                  <option value="Online Assessment">Online Assessment</option>
+                  <option value="Interviewing">Interviewing</option>
+                  <option value="Offer">Offer</option>
+                  <option value="Rejected">Rejected</option>
                 </select>
               </div>
-              <button type="submit" className="btn btn-primary" style={{ marginTop: "10px" }}>
-                Add Job
+            </div>
+            <div style={{ marginTop: "24px" }}>
+              <button
+                className="btn btn-primary btn-full"
+                onClick={handleAdd}
+                disabled={!company || !position}
+                style={{ fontSize: "15px", padding: "10px" }}
+              >
+                Add Application
               </button>
-            </form>
+            </div>
           </div>
 
-          {/* Right Column: List */}
+          {/* Applications Table */}
           <div className="card">
-            <div className="card-header">
-              <div className="card-title">My Applications</div>
-              <div className="card-subtitle">{applications.length} total</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 className="card-title" style={{ margin: 0 }}>
+                Your Applications
+              </h2>
+
+              {/* Search and Filter Controls */}
+              <div style={{ display: "flex", gap: "12px" }}>
+                <input
+                  className="field-input"
+                  placeholder="Search company or title..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ width: "200px", fontSize: "13px", padding: "8px 12px" }}
+                />
+                <select
+                  className="field-select"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  style={{ width: "140px", fontSize: "13px", padding: "8px 12px" }}
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Applied">Applied</option>
+                  <option value="Online Assessment">Online Assessment</option>
+                  <option value="Interviewing">Interviewing</option>
+                  <option value="Offer">Offer</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
             </div>
 
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th style={{ width: "60px" }}>ID</th>
-                    <th>Job ID</th>
-                    <th>Company</th>
-                    <th>Position</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th style={{ width: "140px" }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {applications.map((app) => (
-                    <tr key={app.id}>
-                      <td style={{ color: "#64748b", fontSize: "12px" }}>#{app.id}</td>
-
-                      {editingId === app.id ? (
-                        <>
-                          <td>
+            {loading ? (
+              <div style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>
+                Loading applications...
+              </div>
+            ) : filteredApplications.length === 0 ? (
+              <div style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>
+                {applications.length === 0
+                  ? "No applications yet. Add one to get started!"
+                  : "No applications match your search."}
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "50px" }}>ID</th>
+                      <th>Company</th>
+                      <th>Position</th>
+                      <th>Location</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th style={{ width: "100px", textAlign: "right" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredApplications.map((app) => (
+                      <tr key={app.id} onClick={() => handleViewDetails(app)} style={{ cursor: "pointer" }}>
+                        <td style={{ color: "#64748b", fontSize: "12px" }}>#{app.id}</td>
+                        <td>
+                          {editingId === app.id ? (
                             <input
                               className="field-input"
-                              style={{ padding: "4px 8px", fontSize: "13px", width: "80px" }}
-                              name="jobPostingId"
-                              value={editFormData.jobPostingId}
-                              onChange={handleEditFormChange}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              className="field-input"
-                              style={{ padding: "4px 8px", fontSize: "13px" }}
-                              name="company"
                               value={editFormData.company}
-                              onChange={handleEditFormChange}
+                              onChange={(e) => handleEditChange("company", e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
                             />
-                          </td>
-                          <td>
+                          ) : (
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              {app.logo_url ? (
+                                <img
+                                  src={app.logo_url}
+                                  alt={`${app.company} logo`}
+                                  style={{ width: "24px", height: "24px", borderRadius: "4px", objectFit: "cover" }}
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              ) : (
+                                <div style={{ width: "24px", height: "24px", borderRadius: "4px", background: "#334155", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#fff" }}>
+                                  {app.company.substring(0, 1).toUpperCase()}
+                                </div>
+                              )}
+                              <span style={{ fontWeight: "500", color: "#e2e8f0" }}>{app.company}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {editingId === app.id ? (
                             <input
                               className="field-input"
-                              style={{ padding: "4px 8px", fontSize: "13px" }}
-                              name="jobTitle"
                               value={editFormData.jobTitle}
-                              onChange={handleEditFormChange}
+                              onChange={(e) => handleEditChange("jobTitle", e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
                             />
-                          </td>
-                          <td>
+                          ) : (
+                            app.job_title
+                          )}
+                        </td>
+                        <td style={{ maxWidth: "150px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={app.location}>
+                          {editingId === app.id ? (
                             <input
                               className="field-input"
-                              style={{ padding: "4px 8px", fontSize: "13px" }}
-                              name="location"
                               value={editFormData.location}
-                              onChange={handleEditFormChange}
+                              onChange={(e) => handleEditChange("location", e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
                             />
-                          </td>
-                          <td>
+                          ) : (
+                            app.location || "-"
+                          )}
+                        </td>
+                        <td>
+                          {editingId === app.id ? (
                             <select
                               className="field-select"
-                              style={{ padding: "4px 8px", fontSize: "13px", width: "100%" }}
-                              name="status"
                               value={editFormData.status}
-                              onChange={handleEditFormChange}
+                              onChange={(e) => handleEditChange("status", e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <option>Applied</option>
-                              <option>Online Assessment</option>
-                              <option>Interviewing</option>
-                              <option>Offer</option>
-                              <option>Rejected</option>
-                              <option>Accepted</option>
+                              <option value="Applied">Applied</option>
+
+                              <option value="Online Assessment">Online Assessment</option>
+                              <option value="Interviewing">Interviewing</option>
+                              <option value="Offer">Offer</option>
+                              <option value="Rejected">Rejected</option>
                             </select>
-                          </td>
-                          <td style={{ color: "#9ca3af", fontSize: "12px" }}>
-                            {new Date(app.created_at).toLocaleDateString()}
-                          </td>
-                          <td>
-                            <div style={{ display: "flex", gap: "6px" }}>
-                              <button
-                                className="btn btn-primary"
-                                style={{ padding: "4px 8px", fontSize: "11px", background: "#22c55e", borderColor: "#22c55e" }}
-                                onClick={() => handleSaveClick(app.id)}
-                              >
-                                Save
-                              </button>
-                              <button
-                                className="btn btn-muted"
-                                style={{ padding: "4px 8px", fontSize: "11px" }}
-                                onClick={handleCancelClick}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td style={{ color: "#94a3b8", fontSize: "13px" }}>{app.job_posting_id || "-"}</td>
-                          <td style={{ fontWeight: 500, color: "#e5e7eb" }}>
-                            {app.company}
-                          </td>
-                          <td>{app.job_title}</td>
-                          <td style={{ color: "#94a3b8" }}>{app.location || "-"}</td>
-                          <td>
-                            <span
-                              className={`status-chip status-${app.status.toLowerCase().replace(" ", "-")}`}
-                            >
+                          ) : (
+                            <span className={`status-chip status-${app.status.toLowerCase()}`}>
                               {app.status}
                             </span>
-                          </td>
-                          <td style={{ color: "#9ca3af", fontSize: "12px" }}>
-                            {new Date(app.created_at).toLocaleDateString()}
-                          </td>
-                          <td>
-                            <div style={{ display: "flex", gap: "6px" }}>
-                              <button
-                                className="btn btn-primary"
-                                style={{ padding: "4px 8px", fontSize: "11px" }}
-                                onClick={() => handleEditClick(app)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="btn btn-danger"
-                                style={{ padding: "4px 8px", fontSize: "11px" }}
-                                onClick={() => handleDelete(app.id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  ))}
-                  {applications.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan="8" className="text-center" style={{ padding: "30px", color: "#64748b" }}>
-                        No applications yet. Start tracking!
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          )}
+                        </td>
+                        <td style={{ color: "#94a3b8", fontSize: "13px" }}>
+                          {new Date(app.applied_date).toLocaleDateString()}
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <div className="action-buttons" style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                            {editingId === app.id ? (
+                              <>
+                                <button
+                                  className="btn btn-sm btn-primary"
+                                  onClick={(e) => handleSaveEdit(app.id, e)}
+                                  style={{ padding: "4px 10px", fontSize: "12px" }}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-ghost"
+                                  onClick={(e) => handleCancelEdit(e)}
+                                  style={{ padding: "4px 10px", fontSize: "12px" }}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  className="btn btn-sm btn-ghost"
+                                  onClick={(e) => handleEditClick(app, e)}
+                                  style={{ padding: "4px 10px", fontSize: "12px" }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={(e) => handleDelete(app.id, e)}
+                                  style={{ padding: "4px 10px", fontSize: "12px" }}
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </main>
+
+      {/* Details Modal */}
+      {selectedApp && (
+        <div className="modal-overlay" onClick={closeDetails}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                {selectedApp.logo_url && (
+                  <img
+                    src={selectedApp.logo_url}
+                    alt={`${selectedApp.company} logo`}
+                    style={{ width: "40px", height: "40px", borderRadius: "6px", objectFit: "cover" }}
+                  />
+                )}
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "20px" }}>{selectedApp.job_title}</h2>
+                  <p style={{ margin: 0, color: "#94a3b8" }}>{selectedApp.company} • {selectedApp.location}</p>
+                </div>
+              </div>
+              <button className="close-btn" onClick={closeDetails}>&times;</button>
+            </div>
+            <div className="modal-body">
+              {selectedApp.company_description && (
+                <div className="detail-section">
+                  <h3>Company Description</h3>
+                  <p>{selectedApp.company_description}</p>
+                </div>
+              )}
+
+              {selectedApp.responsibilities && (
+                <div className="detail-section">
+                  <h3>Responsibilities</h3>
+                  <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>{selectedApp.responsibilities}</div>
+                </div>
+              )}
+
+              {selectedApp.required_qualifications && (
+                <div className="detail-section">
+                  <h3>Required Qualifications</h3>
+                  <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>{selectedApp.required_qualifications}</div>
+                </div>
+              )}
+
+              {selectedApp.preferred_qualifications && (
+                <div className="detail-section">
+                  <h3>Preferred Qualifications</h3>
+                  <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>{selectedApp.preferred_qualifications}</div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={closeDetails}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "400px" }}>
+            <div className="modal-header">
+              <h2 className="modal-title" style={{ color: "#ef4444" }}>Delete Account</h2>
+              <button className="close-btn" onClick={() => setShowDeleteConfirm(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: "#e2e8f0", marginBottom: "20px" }}>
+                Are you sure you want to delete your account? This action cannot be undone and all your tracked applications will be lost.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)} style={{ marginRight: "10px" }}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleDeleteAccount}>Delete Account</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          backdrop-filter: blur(4px);
+        }
+        .modal-content {
+          background: #1e293b;
+          border: 1px solid #334155;
+          border-radius: 16px;
+          width: 90%;
+          max-width: 800px;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .modal-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #334155;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .modal-title {
+          margin: 0;
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #f8fafc;
+        }
+        .modal-body {
+          padding: 24px;
+        }
+        .detail-section {
+          margin-bottom: 24px;
+        }
+        .detail-section h3 {
+          font-size: 0.875rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #94a3b8;
+          margin-bottom: 8px;
+        }
+        .detail-section p,
+        .detail-section div {
+          color: #e2e8f0;
+          line-height: 1.6;
+          margin: 0;
+        }
+        .modal-footer {
+          padding: 20px 24px;
+          border-top: 1px solid #334155;
+          display: flex;
+          justify-content: flex-end;
+        }
+        .user-menu-dropdown {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          margin-top: 8px;
+          background: #1e293b;
+          border: 1px solid #334155;
+          border-radius: 8px;
+          padding: 4px;
+          min-width: 160px;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+          z-index: 50;
+        }
+        .menu-item {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 8px 12px;
+          background: none;
+          border: none;
+          color: #e2e8f0;
+          font-size: 14px;
+          cursor: pointer;
+          border-radius: 4px;
+        }
+        .menu-item:hover {
+          background: #334155;
+        }
+        .menu-item.text-danger {
+          color: #ef4444;
+        }
+        .menu-item.text-danger:hover {
+          background: rgba(239, 68, 68, 0.1);
+        }
+      `}</style>
     </div>
   );
 }
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
-  const [user, setUser] = useState(
-    localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null
-  );
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const handleLogin = (newToken, newUser) => {
-    setToken(newToken);
-    setUser(newUser);
     localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));
+    setToken(newToken);
+    setUser(newUser);
   };
 
   const handleLogout = () => {
-    setToken(null);
-    setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    setToken(null);
+    setUser(null);
   };
 
-  return (
-    <Router>
-      <Routes>
-        <Route
-          path="/login"
-          element={
-            !token ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/dashboard" />
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            !token ? <SignupPage /> : <Navigate to="/dashboard" />
-          }
-        />
-        <Route
-          path="/verify-email"
-          element={<VerifyEmailPage />}
-        />
-        <Route
-          path="/dashboard"
-          element={
-            token ? (
-              <DashboardPage token={token} user={user} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-        <Route path="*" element={<Navigate to="/dashboard" />} />
-      </Routes>
-    </Router>
+  return token ? (
+    <DashboardPage token={token} user={user} onLogout={handleLogout} />
+  ) : window.location.pathname === "/verify-email" ? (
+    <VerifyEmailPage onVerified={() => setToken(null)} />
+  ) : (
+    <LoginPage onLogin={handleLogin} />
   );
 }
 
