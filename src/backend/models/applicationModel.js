@@ -8,7 +8,19 @@ async function createApplication(userId, { company, jobTitle, jobPostingId, loca
     INSERT INTO applications (user_id, company, job_title, job_posting_id, location, status, company_description, responsibilities, required_qualifications, preferred_qualifications, logo_url)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
-    [userId, company, jobTitle, jobPostingId, location, status || 'Applied', companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl]
+    [
+      userId,
+      company,
+      jobTitle,
+      jobPostingId || null,
+      location || null,
+      status || 'Applied',
+      companyDescription || null,
+      responsibilities || null,
+      requiredQualifications || null,
+      preferredQualifications || null,
+      logoUrl || null
+    ]
   );
 
   const [rows] = await pool.execute(
@@ -56,7 +68,20 @@ async function updateApplication(id, userId, { company, jobTitle, jobPostingId, 
     SET company = ?, job_title = ?, job_posting_id = ?, location = ?, status = ?, company_description = ?, responsibilities = ?, required_qualifications = ?, preferred_qualifications = ?, logo_url = ?
     WHERE id = ? AND user_id = ?
     `,
-    [company, jobTitle, jobPostingId, location, status, companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl, id, userId]
+    [
+      company,
+      jobTitle,
+      jobPostingId || null,
+      location || null,
+      status,
+      companyDescription || null,
+      responsibilities || null,
+      requiredQualifications || null,
+      preferredQualifications || null,
+      logoUrl || null,
+      id,
+      userId
+    ]
   );
 
   return getApplicationById(userId, id);

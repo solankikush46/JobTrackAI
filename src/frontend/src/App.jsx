@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import ApplicationFormModal from "./ApplicationFormModal";
+import { createApplication, updateApplication } from "./apiClient";
 import "./index.css";
 
 // --- API Helper ---
@@ -192,25 +194,12 @@ function DashboardPage({ token, user, onLogout }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingApp, setEditingApp] = useState(null);
+
   // Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-
-  // Form State
-  const [company, setCompany] = useState("");
-  const [position, setPosition] = useState("");
-  const [location, setLocation] = useState("");
-  const [status, setStatus] = useState("Applied");
-
-  // Editing state
-  const [editingId, setEditingId] = useState(null);
-  const [editFormData, setEditFormData] = useState({
-    company: "",
-    jobTitle: "",
-    jobPostingId: "",
-    location: "",
-    status: "",
-  });
 
   // View Details State
   const [selectedApp, setSelectedApp] = useState(null);
@@ -239,22 +228,29 @@ function DashboardPage({ token, user, onLogout }) {
     }
   };
 
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    try {
-      const newApp = await axios.post(
-        `${API_URL}/applications`,
-        { company, jobTitle: position, location, status },
-        getAuthHeaders(token)
-      );
-      setApplications([newApp.data, ...applications]);
-      setCompany("");
-      setPosition("");
-      setLocation("");
-      setStatus("Applied");
-    } catch (err) {
-      alert(err.message);
+  const handleModalSubmit = async (appData) => {
+    if (editingApp) {
+      // Update existing
+      const updated = await updateApplication(token, editingApp.id, appData);
+      setApplications(applications.map((app) => (app.id === editingApp.id ? updated : app)));
+      setEditingApp(null);
+    } else {
+      // Create new
+      const created = await createApplication(token, appData);
+      setApplications([created, ...applications]);
     }
+    setShowAddModal(false);
+  };
+
+  const handleAddClick = () => {
+    setEditingApp(null);
+    setShowAddModal(true);
+  };
+
+  const handleEditClick = (app, e) => {
+    e.stopPropagation();
+    setEditingApp(app);
+    setShowAddModal(true);
   };
 
   const handleDelete = async (id, e) => {
@@ -268,52 +264,6 @@ function DashboardPage({ token, user, onLogout }) {
     }
   };
 
-  // --- Inline Edit Handlers ---
-  const handleEditClick = (app, e) => {
-    e.stopPropagation();
-    setEditingId(app.id);
-    setEditFormData({
-      company: app.company,
-      jobTitle: app.job_title,
-      jobPostingId: app.job_posting_id || "",
-      location: app.location || "",
-      status: app.status,
-    });
-  };
-
-  const handleCancelEdit = (e) => {
-    e.stopPropagation();
-    setEditingId(null);
-  };
-
-  const handleEditChange = (field, value) => {
-    setEditFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSaveEdit = async (id, e) => {
-    e.stopPropagation();
-    try {
-      const res = await axios.put(
-        `${API_URL}/applications/${id}`,
-        {
-          company: editFormData.company,
-          jobTitle: editFormData.jobTitle,
-          jobPostingId: editFormData.jobPostingId,
-          location: editFormData.location,
-          status: editFormData.status,
-        },
-        getAuthHeaders(token)
-      );
-
-      // Update local state
-      setApplications(applications.map((app) => (app.id === id ? res.data : app)));
-      setEditingId(null);
-    } catch (err) {
-      console.error("Failed to update application", err);
-      alert("Failed to update application");
-    }
-  };
-
   const handleDeleteAccount = async () => {
     try {
       await axios.delete(`${API_URL}/auth/delete-account`, getAuthHeaders(token));
@@ -324,7 +274,6 @@ function DashboardPage({ token, user, onLogout }) {
   };
 
   const handleViewDetails = (app) => {
-    if (editingId) return; // Don't open details if editing
     setSelectedApp(app);
   };
 
@@ -372,73 +321,22 @@ function DashboardPage({ token, user, onLogout }) {
       <main className="app-main">
         <div className="dashboard-grid">
 
-          {/* Add Form - Left Column */}
-          <div className="form-card">
-            <h2 className="card-title" style={{ marginBottom: "16px", fontSize: "18px" }}>Add New Application</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div className="field">
-                <label className="field-label" style={{ fontSize: "14px" }}>Company</label>
-                <input
-                  className="field-input"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  placeholder="e.g. Google"
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" style={{ fontSize: "14px" }}>Position</label>
-                <input
-                  className="field-input"
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                  placeholder="e.g. Frontend Engineer"
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" style={{ fontSize: "14px" }}>Location</label>
-                <input
-                  className="field-input"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Remote / NYC"
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" style={{ fontSize: "14px" }}>Status</label>
-                <select
-                  className="field-select"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="Applied">Applied</option>
-                  <option value="Online Assessment">Online Assessment</option>
-                  <option value="Interviewing">Interviewing</option>
-                  <option value="Offer">Offer</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
-              </div>
-            </div>
-            <div style={{ marginTop: "24px" }}>
-              <button
-                className="btn btn-primary btn-full"
-                onClick={handleAdd}
-                disabled={!company || !position}
-                style={{ fontSize: "15px", padding: "10px" }}
-              >
-                Add Application
-              </button>
-            </div>
-          </div>
-
           {/* Applications Table */}
-          <div className="card">
+          <div className="card full-width-card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <h2 className="card-title" style={{ margin: 0 }}>
                 Your Applications
               </h2>
 
               {/* Search and Filter Controls */}
-              <div style={{ display: "flex", gap: "12px" }}>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleAddClick}
+                  style={{ padding: "8px 16px", fontSize: "13px" }}
+                >
+                  + Add Application
+                </button>
                 <input
                   className="field-input"
                   placeholder="Search company or title..."
@@ -453,11 +351,14 @@ function DashboardPage({ token, user, onLogout }) {
                   style={{ width: "140px", fontSize: "13px", padding: "8px 12px" }}
                 >
                   <option value="All">All Statuses</option>
+                  <option value="Saved">Saved</option>
                   <option value="Applied">Applied</option>
                   <option value="Online Assessment">Online Assessment</option>
                   <option value="Interviewing">Interviewing</option>
                   <option value="Offer">Offer</option>
                   <option value="Rejected">Rejected</option>
+                  <option value="On hold">On hold</option>
+                  <option value="Accepted">Accepted</option>
                 </select>
               </div>
             </div>
@@ -491,116 +392,52 @@ function DashboardPage({ token, user, onLogout }) {
                       <tr key={app.id} onClick={() => handleViewDetails(app)} style={{ cursor: "pointer" }}>
                         <td style={{ color: "#64748b", fontSize: "12px" }}>#{app.id}</td>
                         <td>
-                          {editingId === app.id ? (
-                            <input
-                              className="field-input"
-                              value={editFormData.company}
-                              onChange={(e) => handleEditChange("company", e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                              {app.logo_url ? (
-                                <img
-                                  src={app.logo_url}
-                                  alt={`${app.company} logo`}
-                                  style={{ width: "24px", height: "24px", borderRadius: "4px", objectFit: "cover" }}
-                                  onError={(e) => { e.target.style.display = 'none'; }}
-                                />
-                              ) : (
-                                <div style={{ width: "24px", height: "24px", borderRadius: "4px", background: "#334155", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#fff" }}>
-                                  {app.company.substring(0, 1).toUpperCase()}
-                                </div>
-                              )}
-                              <span style={{ fontWeight: "500", color: "#e2e8f0" }}>{app.company}</span>
-                            </div>
-                          )}
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            {app.logo_url ? (
+                              <img
+                                src={app.logo_url}
+                                alt={`${app.company} logo`}
+                                style={{ width: "24px", height: "24px", borderRadius: "4px", objectFit: "cover" }}
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div style={{ width: "24px", height: "24px", borderRadius: "4px", background: "#334155", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#fff" }}>
+                                {app.company.substring(0, 1).toUpperCase()}
+                              </div>
+                            )}
+                            <span style={{ fontWeight: "500", color: "#e2e8f0" }}>{app.company}</span>
+                          </div>
                         </td>
                         <td>
-                          {editingId === app.id ? (
-                            <input
-                              className="field-input"
-                              value={editFormData.jobTitle}
-                              onChange={(e) => handleEditChange("jobTitle", e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            app.job_title
-                          )}
+                          {app.job_title}
                         </td>
                         <td style={{ maxWidth: "150px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={app.location}>
-                          {editingId === app.id ? (
-                            <input
-                              className="field-input"
-                              value={editFormData.location}
-                              onChange={(e) => handleEditChange("location", e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            app.location || "-"
-                          )}
+                          {app.location || "-"}
                         </td>
                         <td>
-                          {editingId === app.id ? (
-                            <select
-                              className="field-select"
-                              value={editFormData.status}
-                              onChange={(e) => handleEditChange("status", e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <option value="Applied">Applied</option>
-
-                              <option value="Online Assessment">Online Assessment</option>
-                              <option value="Interviewing">Interviewing</option>
-                              <option value="Offer">Offer</option>
-                              <option value="Rejected">Rejected</option>
-                            </select>
-                          ) : (
-                            <span className={`status-chip status-${app.status.toLowerCase()}`}>
-                              {app.status}
-                            </span>
-                          )}
+                          <span className={`status-chip status-${app.status.toLowerCase().replace(' ', '-')}`}>
+                            {app.status}
+                          </span>
                         </td>
                         <td style={{ color: "#94a3b8", fontSize: "13px" }}>
                           {new Date(app.applied_date).toLocaleDateString()}
                         </td>
                         <td style={{ textAlign: "right" }}>
                           <div className="action-buttons" style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                            {editingId === app.id ? (
-                              <>
-                                <button
-                                  className="btn btn-sm btn-primary"
-                                  onClick={(e) => handleSaveEdit(app.id, e)}
-                                  style={{ padding: "4px 10px", fontSize: "12px" }}
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-ghost"
-                                  onClick={(e) => handleCancelEdit(e)}
-                                  style={{ padding: "4px 10px", fontSize: "12px" }}
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  className="btn btn-sm btn-ghost"
-                                  onClick={(e) => handleEditClick(app, e)}
-                                  style={{ padding: "4px 10px", fontSize: "12px" }}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-danger"
-                                  onClick={(e) => handleDelete(app.id, e)}
-                                  style={{ padding: "4px 10px", fontSize: "12px" }}
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
+                            <button
+                              className="btn btn-sm btn-ghost"
+                              onClick={(e) => handleEditClick(app, e)}
+                              style={{ padding: "4px 10px", fontSize: "12px" }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={(e) => handleDelete(app.id, e)}
+                              style={{ padding: "4px 10px", fontSize: "12px" }}
+                            >
+                              Delete
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -612,6 +449,15 @@ function DashboardPage({ token, user, onLogout }) {
           </div>
         </div>
       </main>
+
+      <ApplicationFormModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        token={token}
+        onSubmit={handleModalSubmit}
+        initialData={editingApp}
+        title={editingApp ? "Edit Application" : "Add New Application"}
+      />
 
       {/* Details Modal */}
       {selectedApp && (
@@ -785,6 +631,9 @@ function DashboardPage({ token, user, onLogout }) {
         }
         .menu-item.text-danger:hover {
           background: rgba(239, 68, 68, 0.1);
+        }
+        .full-width-card {
+          grid-column: 1 / -1;
         }
       `}</style>
     </div>
