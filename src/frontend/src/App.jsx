@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ApplicationFormModal from "./ApplicationFormModal";
+import ResumeManager from "./ResumeManager";
 import { createApplication, updateApplication } from "./apiClient";
 import "./index.css";
 
@@ -195,6 +196,7 @@ function DashboardPage({ token, user, onLogout }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showResumeModal, setShowResumeModal] = useState(false);
   const [editingApp, setEditingApp] = useState(null);
 
   // Filter State
@@ -294,27 +296,44 @@ function DashboardPage({ token, user, onLogout }) {
           </div>
           <h1 className="app-brand-text" style={{ fontSize: "20px", margin: 0 }}>JobTrackAI</h1>
         </div>
-        <div className="app-header-user" style={{ position: "relative" }}>
-          <div
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          <button
+            onClick={() => setShowResumeModal(true)}
+            className="btn btn-ghost"
+            style={{ color: "#94a3b8", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px" }}
           >
-            <span style={{ color: "#94a3b8" }}>{user?.email || "Welcome back"}</span>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
-          </div>
+            Resumes
+          </button>
 
-          {showUserMenu && (
-            <div className="user-menu-dropdown">
-              <button onClick={onLogout} className="menu-item">
-                Sign Out
-              </button>
-              <button onClick={() => { setShowUserMenu(false); setShowDeleteConfirm(true); }} className="menu-item text-danger">
-                Delete Account
-              </button>
+          <div className="app-header-user" style={{ position: "relative" }}>
+            <div
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+            >
+              <span style={{ color: "#94a3b8" }}>{user?.email || "Welcome back"}</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
             </div>
-          )}
+
+            {showUserMenu && (
+              <div className="user-menu-dropdown">
+                <button onClick={onLogout} className="menu-item">
+                  Sign Out
+                </button>
+                <button onClick={() => { setShowUserMenu(false); setShowDeleteConfirm(true); }} className="menu-item text-danger">
+                  Delete Account
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -458,6 +477,13 @@ function DashboardPage({ token, user, onLogout }) {
         initialData={editingApp}
         title={editingApp ? "Edit Application" : "Add New Application"}
       />
+
+      {showResumeModal && (
+        <ResumeManager
+          token={token}
+          onClose={() => setShowResumeModal(false)}
+        />
+      )}
 
       {/* Details Modal */}
       {selectedApp && (

@@ -6,6 +6,7 @@ const authRoutes = require("./routes/authRoutes");
 const authMiddleware = require("./middleware/authMiddleware");
 const applicationRoutes = require("./routes/applicationRoutes");
 const extractRoutes = require("./routes/extractRoutes");
+const resumeRoutes = require("./routes/resumeRoutes");
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/extract", extractRoutes);
+app.use("/api/resumes", resumeRoutes);
 
 // Health check route
 app.get("/api/health", (req, res) => {
