@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
+import ResumeMatcher from "./ResumeMatcher";
 
-function ApplicationFormModal({ isOpen, onClose, onSubmit, initialData = null, title = "Add New Application" }) {
+const API_URL = "http://localhost:4000/api";
+
+function ApplicationFormModal({ isOpen, onClose, onSubmit, initialData = null, title = "Add New Application", token, onApplicationUpdated }) {
     const [company, setCompany] = useState("");
     const [jobTitle, setJobTitle] = useState("");
     const [location, setLocation] = useState("");
@@ -27,7 +31,6 @@ function ApplicationFormModal({ isOpen, onClose, onSubmit, initialData = null, t
                 setLocation(initialData.location || "");
                 setStatus(initialData.status || "Applied");
                 setSource(initialData.source || "");
-                // Format date for input type="date"
                 setAppliedDate(initialData.applied_date ? new Date(initialData.applied_date).toISOString().split('T')[0] : "");
                 setJobLink(initialData.job_link || "");
                 setNotes(initialData.notes || "");
@@ -36,7 +39,6 @@ function ApplicationFormModal({ isOpen, onClose, onSubmit, initialData = null, t
                 setRequiredQualifications(initialData.required_qualifications || "");
                 setPreferredQualifications(initialData.preferred_qualifications || "");
             } else {
-                // Reset form for new entry
                 setCompany("");
                 setJobTitle("");
                 setLocation("");
@@ -101,6 +103,29 @@ function ApplicationFormModal({ isOpen, onClose, onSubmit, initialData = null, t
 
                 <div className="modal-body">
                     <form onSubmit={handleSubmit} className="form-grid">
+                        {/* AI Match Section - Only for existing applications */}
+                        {initialData && (
+                            <ResumeMatcher
+                                jobDetails={{
+                                    company,
+                                    jobTitle,
+                                    companyDescription,
+                                    responsibilities,
+                                    requiredQualifications
+                                }}
+                                applicationId={initialData.id}
+                                initialScore={initialData.resume_match_score}
+                                token={token}
+                                onMatchComplete={(result) => {
+                                    if (onApplicationUpdated) {
+                                        onApplicationUpdated({
+                                            ...initialData,
+                                            resume_match_score: result.score
+                                        });
+                                    }
+                                }}
+                            />
+                        )}
                         <div className="field">
                             <span className="field-label">Company *</span>
                             <input

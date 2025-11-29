@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ApplicationFormModal from "./ApplicationFormModal";
 import ResumeManager from "./ResumeManager";
+import ResumeMatcher from "./ResumeMatcher";
 import { createApplication, updateApplication } from "./apiClient";
 import "./index.css";
 
@@ -401,6 +402,7 @@ function DashboardPage({ token, user, onLogout }) {
                       <th>Company</th>
                       <th>Position</th>
                       <th>Location</th>
+                      <th>Match</th>
                       <th>Status</th>
                       <th>Date</th>
                       <th style={{ width: "100px", textAlign: "right" }}>Action</th>
@@ -432,6 +434,24 @@ function DashboardPage({ token, user, onLogout }) {
                         </td>
                         <td style={{ maxWidth: "150px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={app.location}>
                           {app.location || "-"}
+                        </td>
+                        <td>
+                          {app.resume_match_score ? (
+                            <span style={{
+                              display: "inline-block",
+                              padding: "2px 8px",
+                              borderRadius: "12px",
+                              fontSize: "12px",
+                              fontWeight: "600",
+                              backgroundColor: app.resume_match_score >= 70 ? "rgba(34, 197, 94, 0.2)" : app.resume_match_score >= 40 ? "rgba(234, 179, 8, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                              color: app.resume_match_score >= 70 ? "#4ade80" : app.resume_match_score >= 40 ? "#facc15" : "#f87171",
+                              border: `1px solid ${app.resume_match_score >= 70 ? "rgba(34, 197, 94, 0.3)" : app.resume_match_score >= 40 ? "rgba(234, 179, 8, 0.3)" : "rgba(239, 68, 68, 0.3)"}`
+                            }}>
+                              {app.resume_match_score}%
+                            </span>
+                          ) : (
+                            <span style={{ color: "#64748b", fontSize: "12px" }}>-</span>
+                          )}
                         </td>
                         <td>
                           <span className={`status-chip status-${app.status.toLowerCase().replace(' ', '-')}`}>
@@ -476,6 +496,10 @@ function DashboardPage({ token, user, onLogout }) {
         onSubmit={handleModalSubmit}
         initialData={editingApp}
         title={editingApp ? "Edit Application" : "Add New Application"}
+        onApplicationUpdated={(updatedApp) => {
+          setApplications(applications.map((app) => (app.id === updatedApp.id ? updatedApp : app)));
+          setEditingApp(updatedApp);
+        }}
       />
 
       {showResumeModal && (
@@ -533,6 +557,28 @@ function DashboardPage({ token, user, onLogout }) {
                   <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>{selectedApp.preferred_qualifications}</div>
                 </div>
               )}
+
+              {/* AI Match Section */}
+              <div className="detail-section" style={{ marginTop: '30px' }}>
+                <ResumeMatcher
+                  jobDetails={{
+                    company: selectedApp.company,
+                    jobTitle: selectedApp.job_title,
+                    companyDescription: selectedApp.company_description,
+                    responsibilities: selectedApp.responsibilities,
+                    requiredQualifications: selectedApp.required_qualifications
+                  }}
+                  applicationId={selectedApp.id}
+                  initialScore={selectedApp.resume_match_score}
+                  token={token}
+                  onMatchComplete={(result) => {
+                    // Update local state to reflect new score immediately
+                    const updatedApp = { ...selectedApp, resume_match_score: result.score };
+                    setSelectedApp(updatedApp);
+                    setApplications(applications.map(app => app.id === updatedApp.id ? updatedApp : app));
+                  }}
+                />
+              </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={closeDetails}>Close</button>

@@ -77,6 +77,65 @@ Do not include any markdown formatting or explanation. Just the JSON.`;
     }
 }
 
+async function calculateMatchScore(resumeText, jobDetails) {
+    const apiKey = process.env.GROQ_API_KEY || process.env.HUGGINGFACE_API_KEY;
+
+    if (!apiKey) {
+        console.error("API Key is missing.");
+        return { score: 0, reasoning: "API Key missing. Cannot analyze." };
+    }
+
+    const systemPrompt = `You are an expert HR recruiter. Compare the candidate's resume with the job description.
+Return ONLY a JSON object with:
+- score (number, 0-100)
+- reasoning (string, max 300 chars, explaining the score)
+
+Be strict but fair. High scores (80+) require strong matching of skills and experience.`;
+
+    const userPrompt = `
+JOB DETAILS:
+Title: ${jobDetails.jobTitle}
+Company: ${jobDetails.company}
+Description: ${jobDetails.companyDescription}
+Responsibilities: ${jobDetails.responsibilities}
+Qualifications: ${jobDetails.requiredQualifications}
+
+RESUME CONTENT:
+${resumeText.substring(0, 4000)}
+`;
+
+    try {
+        const response = await fetch(GROQ_API_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: "llama-3.1-8b-instant",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
+                ],
+                temperature: 0.1,
+                response_format: { type: "json_object" }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Groq API Error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        const content = result.choices[0]?.message?.content;
+        return JSON.parse(content);
+
+    } catch (error) {
+        console.error("AI Match Error:", error);
+        return { score: 0, reasoning: "AI analysis failed." };
+    }
+}
+
 function getMockData(text) {
     // Simple heuristic to make mock data look slightly real
     const companyMatch = text.match(/(?:at|for) ([A-Z][a-z]+(?: [A-Z][a-z]+)*)/);
@@ -97,5 +156,6 @@ function getMockData(text) {
 }
 
 module.exports = {
-    extractJobDetails
+    extractJobDetails,
+    calculateMatchScore
 };

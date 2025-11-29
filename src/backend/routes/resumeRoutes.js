@@ -2,8 +2,11 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const pdfParse = require('pdf-parse');
 const authMiddleware = require('../middleware/authMiddleware');
 const resumeModel = require('../models/resumeModel');
+const applicationModel = require('../models/applicationModel');
+const { calculateMatchScore } = require('../services/aiService');
 
 const router = express.Router();
 
@@ -104,6 +107,56 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Match Resume with Job Details
+router.post('/:id/match', authMiddleware, async (req, res) => {
+    try {
+        const { jobDetails } = req.body;
+        if (!jobDetails) {
+            return res.status(400).json({ message: 'Job details are required' });
+        }
+
+        const resume = await resumeModel.getResumeById(req.user.id, req.params.id);
+        if (!resume) {
+            return res.status(404).json({ message: 'Resume not found' });
+        }
+
+        const filePath = path.join(__dirname, '../uploads/resumes', resume.file_name);
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ message: 'Resume file not found' });
+        }
+
+        const dataBuffer = fs.readFileSync(filePath);
+        const pdfData = await pdfParse(dataBuffer);
+        const resumeText = pdfData.text;
+
+        const matchResult = await calculateMatchScore(resumeText, jobDetails);
+
+        // If applicationId is provided, update the application with the score
+        if (req.body.applicationId) {
+            const appId = req.body.applicationId;
+            const existingApp = await applicationModel.getApplicationById(req.user.id, appId);
+            if (existingApp) {
+                await applicationModel.updateApplication(appId, req.user.id, {
+                    ...existingApp,
+                    jobTitle: existingApp.job_title, // Map DB fields to model expected fields
+                    companyDescription: existingApp.company_description,
+                    requiredQualifications: existingApp.required_qualifications,
+                    preferredQualifications: existingApp.preferred_qualifications,
+                    appliedDate: existingApp.applied_date,
+                    jobLink: existingApp.job_link,
+                    resumeMatchScore: matchResult.score
+                });
+            }
+        }
+
+        res.json(matchResult);
+
+    } catch (err) {
+        console.error("Match error:", err);
+        res.status(500).json({ message: 'Server error during analysis' });
     }
 });
 

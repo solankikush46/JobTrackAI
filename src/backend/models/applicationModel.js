@@ -1,12 +1,11 @@
 const pool = require("../db");
 
 // Create a new application for a user
-// Create a new application for a user
-async function createApplication(userId, { company, jobTitle, jobPostingId, location, status, companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl }) {
+async function createApplication(userId, { company, jobTitle, jobPostingId, location, status, companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl, resumeMatchScore }) {
   const [result] = await pool.execute(
     `
-    INSERT INTO applications (user_id, company, job_title, job_posting_id, location, status, company_description, responsibilities, required_qualifications, preferred_qualifications, logo_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO applications (user_id, company, job_title, job_posting_id, location, status, company_description, responsibilities, required_qualifications, preferred_qualifications, logo_url, resume_match_score)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       userId,
@@ -19,7 +18,8 @@ async function createApplication(userId, { company, jobTitle, jobPostingId, loca
       responsibilities || null,
       requiredQualifications || null,
       preferredQualifications || null,
-      logoUrl || null
+      logoUrl || null,
+      resumeMatchScore || null
     ]
   );
 
@@ -61,11 +61,11 @@ async function getApplicationById(userId, appId) {
   return rows[0] || null;
 }
 
-async function updateApplication(id, userId, { company, jobTitle, jobPostingId, location, status, companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl }) {
+async function updateApplication(id, userId, { company, jobTitle, jobPostingId, location, status, companyDescription, responsibilities, requiredQualifications, preferredQualifications, logoUrl, resumeMatchScore }) {
   const [result] = await pool.execute(
     `
     UPDATE applications
-    SET company = ?, job_title = ?, job_posting_id = ?, location = ?, status = ?, company_description = ?, responsibilities = ?, required_qualifications = ?, preferred_qualifications = ?, logo_url = ?
+    SET company = ?, job_title = ?, job_posting_id = ?, location = ?, status = ?, company_description = ?, responsibilities = ?, required_qualifications = ?, preferred_qualifications = ?, logo_url = ?, resume_match_score = ?
     WHERE id = ? AND user_id = ?
     `,
     [
@@ -79,6 +79,7 @@ async function updateApplication(id, userId, { company, jobTitle, jobPostingId, 
       requiredQualifications || null,
       preferredQualifications || null,
       logoUrl || null,
+      resumeMatchScore || null,
       id,
       userId
     ]

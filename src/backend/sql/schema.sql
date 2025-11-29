@@ -95,20 +95,6 @@ CREATE TABLE IF NOT EXISTS applications (
   location VARCHAR(255),
   status ENUM('Applied', 'Online Assessment', 'Interviewing', 'Offer', 'Rejected', 'On hold', 'Accepted')
     DEFAULT 'Applied',
-  source VARCHAR(100),
-  applied_date DATE,
-  job_link VARCHAR(255),
-  notes TEXT,
-  company_description TEXT,
-  responsibilities TEXT,
-  required_qualifications TEXT,
-  preferred_qualifications TEXT,
-  logo_url VARCHAR(1024) DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_app_user
-    FOREIGN KEY (user_id) REFERENCES users(id)
-    ON DELETE CASCADE
 );
 
 -- Resumes table
